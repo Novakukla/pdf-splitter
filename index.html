@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Splitter</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: #1f2937;
+    }
+    .container { max-width: 680px; margin: 0 auto; }
+
+    header { margin-bottom: 2rem; }
+    header h1 { font-size: 1.75rem; font-weight: 800; }
+    header p  { color: #6b7280; margin-top: 0.25rem; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .card-title {
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 10px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      user-select: none;
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+    .drop-zone .dz-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .drop-zone .dz-main { font-size: .95rem; color: #374151; }
+    .drop-zone .dz-main strong { color: #6366f1; }
+    .drop-zone .dz-note  { font-size: .75rem; color: #9ca3af; margin-top: .4rem; }
+    #file-input { display: none; }
+
+    .file-pill {
+      display: none;
+      align-items: center;
+      gap: .75rem;
+      margin-top: 1rem;
+      padding: .65rem 1rem;
+      background: #f5f3ff;
+      border: 1.5px solid #c4b5fd;
+      border-radius: 8px;
+    }
+    .file-pill.visible { display: flex; }
+    .file-pill .fp-name  { flex: 1; font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-pill .fp-size  { font-size: .8rem; color: #9ca3af; flex-shrink: 0; }
+    .fp-clear {
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 1rem; padding: .1rem .3rem;
+      border-radius: 4px; flex-shrink: 0;
+    }
+    .fp-clear:hover { color: #ef4444; background: #fee2e2; }
+
+    /* ── Mode tabs ── */
+    .tabs { display: flex; gap: .5rem; }
+    .tab {
+      flex: 1; padding: .55rem; border: 2px solid #e5e7eb;
+      border-radius: 8px; background: #fff; font-size: .85rem;
+      font-weight: 600; cursor: pointer; transition: all .2s; color: #374151;
+    }
+    .tab:hover  { border-color: #6366f1; color: #6366f1; }
+    .tab.active { border-color: #6366f1; background: #6366f1; color: #fff; }
+
+    .opt-group { display: none; margin-top: 1rem; }
+    .opt-group.show { display: block; }
+    .opt-group label  { font-size: .85rem; font-weight: 600; display: block; margin-bottom: .35rem; }
+    .opt-group input[type=text],
+    .opt-group input[type=number] {
+      width: 100%; padding: .5rem .75rem;
+      border: 1.5px solid #e5e7eb; border-radius: 6px;
+      font-size: .9rem; outline: none;
+      transition: border-color .15s;
+    }
+    .opt-group input:focus { border-color: #6366f1; }
+    .hint { font-size: .75rem; color: #9ca3af; margin-top: .35rem; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: .4rem; padding: .65rem 1.25rem;
+      border: none; border-radius: 8px;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-primary {
+      width: 100%; padding: .8rem;
+      background: #6366f1; color: #fff; font-size: 1rem;
+    }
+    .btn-primary:hover   { background: #4f46e5; }
+    .btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .btn-outline {
+      background: #fff; border: 1.5px solid #e5e7eb; color: #374151;
+    }
+    .btn-outline:hover { border-color: #6366f1; color: #6366f1; }
+    .btn-green { background: #10b981; color: #fff; }
+    .btn-green:hover { background: #059669; }
+
+    /* ── Progress ── */
+    #progress-section { display: none; margin-top: 1.25rem; }
+    .prog-label { font-size: .85rem; color: #6b7280; margin-bottom: .4rem; }
+    .prog-bg {
+      background: #e5e7eb; border-radius: 99px;
+      height: 8px; overflow: hidden;
+    }
+    .prog-fill {
+      background: #6366f1; height: 100%; width: 0%;
+      border-radius: 99px; transition: width .3s;
+    }
+
+    /* ── Results ── */
+    #results-section { display: none; margin-top: 1.25rem; }
+    .results-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 1rem;
+    }
+    .results-header h2 { font-size: 1rem; font-weight: 700; }
+
+    .pdf-list { display: flex; flex-direction: column; gap: .6rem; }
+    .pdf-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .75rem; padding: .7rem 1rem;
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+    }
+    .pdf-item-left { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+    .pdf-item-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .pdf-item-name  { font-weight: 600; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pdf-item-pages { font-size: .75rem; color: #9ca3af; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; margin-top: 2.5rem;
+      font-size: .75rem; color: #d1d5db;
+    }
+    footer a { color: #9ca3af; text-decoration: none; }
+    footer a:hover { color: #6366f1; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>✂️ PDF Splitter</h1>
+    <p>Split multi-contract PDFs. Everything runs in your browser — no file is ever uploaded.</p>
+  </header>
+
+  <!-- Step 1 – Upload -->
+  <div class="card">
+    <div class="card-title">1 · Select PDF</div>
+    <div class="drop-zone" id="drop-zone">
+      <div class="dz-icon">📄</div>
+      <p class="dz-main"><strong>Click to browse</strong> or drag &amp; drop a PDF</p>
+      <p class="dz-note">Processed entirely in your browser · no server · no size limit</p>
+    </div>
+    <input type="file" id="file-input" accept=".pdf" />
+    <div class="file-pill" id="file-pill">
+      <span class="pdf-item-icon">📄</span>
+      <span class="fp-name"  id="fp-name"></span>
+      <span class="fp-size"  id="fp-size"></span>
+      <button class="fp-clear" onclick="clearFile()" title="Remove">✕</button>
+    </div>
+  </div>
+
+  <!-- Step 2 – Options -->
+  <div class="card">
+    <div class="card-title">2 · Split mode</div>
+    <div class="tabs">
+      <button class="tab active" data-mode="letterhead" onclick="setMode('letterhead')">
+        🏷️ Auto-detect (letterhead)
+      </button>
+      <button class="tab" data-mode="chunks" onclick="setMode('chunks')">
+        📦 Every N pages
+      </button>
+    </div>
+
+    <div class="opt-group show" id="opt-letterhead">
+      <label>Marker text</label>
+      <input type="text" id="marker-text" value="VENUE RENTAL AGREEMENT"
+             placeholder="Text that appears on each contract's first page" />
+      <p class="hint">
+        Splits before every page that contains <em>both</em> an image (the logo)
+        and this text. Case-insensitive.
+      </p>
+    </div>
+
+    <div class="opt-group" id="opt-chunks">
+      <label>Pages per output file</label>
+      <input type="number" id="chunk-size" value="10" min="1" max="9999" />
+    </div>
+  </div>
+
+  <!-- Step 3 – Go -->
+  <button class="btn btn-primary" id="split-btn" onclick="runSplit()" disabled>
+    ✂️ Split PDF
+  </button>
+
+  <!-- Progress -->
+  <div id="progress-section">
+    <div class="card" style="padding:1.25rem;">
+      <div class="prog-label" id="prog-label">Loading…</div>
+      <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section">
+    <div class="card">
+      <div class="results-header">
+        <h2 id="results-title">Results</h2>
+        <button class="btn btn-outline" onclick="downloadZip()">⬇️ Download all (ZIP)</button>
+      </div>
+      <div class="pdf-list" id="pdf-list"></div>
+    </div>
+  </div>
+
+  <footer>
+    Built with
+    <a href="https://mozilla.github.io/pdf.js/" target="_blank">PDF.js</a>,
+    <a href="https://pdf-lib.js.org/" target="_blank">pdf-lib</a> &amp;
+    <a href="https://stuk.github.io/jszip/" target="_blank">JSZip</a>
+    · runs 100% client-side
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  // ── State ──────────────────────────────────────────────
+  let selectedFile  = null;
+  let splitResults  = [];   // [{name, bytes, pages}]
+  let currentMode   = 'letterhead';
+
+  // ── File selection ─────────────────────────────────────
+  const dropZone  = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type === 'application/pdf') setFile(f);
+  });
+
+  function setFile(file) {
+    selectedFile = file;
+    document.getElementById('fp-name').textContent = file.name;
+    document.getElementById('fp-size').textContent = fmtSize(file.size);
+    document.getElementById('file-pill').classList.add('visible');
+    document.getElementById('split-btn').disabled = false;
+    hideResults();
+  }
+
+  function clearFile() {
+    selectedFile = null; fileInput.value = '';
+    document.getElementById('file-pill').classList.remove('visible');
+    document.getElementById('split-btn').disabled = true;
+    hideResults();
+  }
+
+  function hideResults() {
+    document.getElementById('results-section').style.display  = 'none';
+    document.getElementById('progress-section').style.display = 'none';
+    splitResults = [];
+  }
+
+  function fmtSize(b) {
+    if (b < 1024)         return b + ' B';
+    if (b < 1048576)      return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  // ── Mode tabs ──────────────────────────────────────────
+  function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.mode === mode)
+    );
+    document.getElementById('opt-letterhead').classList.toggle('show', mode === 'letterhead');
+    document.getElementById('opt-chunks').classList.toggle('show', mode === 'chunks');
+  }
+
+  // ── Progress helpers ───────────────────────────────────
+  function setProgress(pct, label) {
+    document.getElementById('prog-fill').style.width  = pct + '%';
+    document.getElementById('prog-label').textContent = label;
+  }
+
+  // ── Main split ─────────────────────────────────────────
+  async function runSplit() {
+    if (!selectedFile) return;
+
+    const btn = document.getElementById('split-btn');
+    btn.disabled = true;
+    splitResults  = [];
+    hideResults();
+    document.getElementById('progress-section').style.display = 'block';
+    setProgress(2, 'Loading PDF…');
+
+    try {
+      const buf      = await selectedFile.arrayBuffer();
+      const baseName = selectedFile.name.replace(/\.pdf$/i, '');
+
+      // Load both engines
+      const pdfjsDoc  = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+      const pdfLibDoc = await PDFLib.PDFDocument.load(buf);
+      const total     = pdfjsDoc.numPages;
+
+      let splitAt = []; // 0-based page indices where a new doc starts
+
+      if (currentMode === 'letterhead') {
+        const marker = document.getElementById('marker-text').value.trim().toUpperCase();
+
+        for (let i = 0; i < total; i++) {
+          setProgress(5 + Math.round((i / total) * 55), `Scanning page ${i + 1} of ${total}…`);
+
+          const page = await pdfjsDoc.getPage(i + 1);
+
+          // Detect image operators
+          const ops      = await page.getOperatorList();
+          const hasImage = ops.fnArray.some(fn =>
+            fn === pdfjsLib.OPS.paintImageXObject        ||
+            fn === pdfjsLib.OPS.paintImageXObjectRepeat  ||
+            fn === pdfjsLib.OPS.paintJpegXObject
+          );
+
+          if (!hasImage) continue;   // fast skip — no logo on this page
+
+          // Extract text and look for marker
+          const tc      = await page.getTextContent();
+          const text    = tc.items.map(i => i.str).join(' ').toUpperCase();
+          if (text.includes(marker)) splitAt.push(i);
+        }
+
+        if (splitAt.length === 0) {
+          alert(
+            `No split points found.\n\n` +
+            `Make sure the PDF contains pages with the logo image AND the text:\n"${marker}"`
+          );
+          document.getElementById('progress-section').style.display = 'none';
+          btn.disabled = false;
+          return;
+        }
+
+      } else {
+        // Chunk mode
+        const n = Math.max(1, parseInt(document.getElementById('chunk-size').value) || 10);
+        for (let i = 0; i < total; i += n) splitAt.push(i);
+      }
+
+      // Build output PDFs
+      const numFiles = splitAt.length;
+      const pad      = String(numFiles).length;
+
+      for (let idx = 0; idx < numFiles; idx++) {
+        setProgress(60 + Math.round((idx / numFiles) * 38), `Building file ${idx + 1} of ${numFiles}…`);
+
+        const start    = splitAt[idx];
+        const end      = idx + 1 < numFiles ? splitAt[idx + 1] : total;
+        const indices  = Array.from({ length: end - start }, (_, k) => start + k);
+
+        const newDoc   = await PDFLib.PDFDocument.create();
+        const copied   = await newDoc.copyPages(pdfLibDoc, indices);
+        copied.forEach(p => newDoc.addPage(p));
+        const bytes    = await newDoc.save();
+
+        const num = String(idx + 1).padStart(pad, '0');
+        splitResults.push({ name: `${baseName}_${num}.pdf`, bytes, pages: indices.length });
+      }
+
+      setProgress(100, `Done — split into ${numFiles} file${numFiles !== 1 ? 's' : ''}.`);
+      showResults();
+
+    } catch (err) {
+      console.error(err);
+      alert('Error processing PDF:\n' + err.message);
+      document.getElementById('progress-section').style.display = 'none';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Results UI ─────────────────────────────────────────
+  function showResults() {
+    const n = splitResults.length;
+    document.getElementById('results-title').textContent =
+      `Split into ${n} file${n !== 1 ? 's' : ''}`;
+
+    const list = document.getElementById('pdf-list');
+    list.innerHTML = '';
+    splitResults.forEach(({ name, pages }, idx) => {
+      const div = document.createElement('div');
+      div.className = 'pdf-item';
+      div.innerHTML = `
+        <div class="pdf-item-left">
+          <span class="pdf-item-icon">📄</span>
+          <div>
+            <div class="pdf-item-name">${name}</div>
+            <div class="pdf-item-pages">${pages} page${pages !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        <button class="btn btn-green" onclick="dlSingle(${idx})">⬇️ Download</button>
+      `;
+      list.appendChild(div);
+    });
+
+    document.getElementById('results-section').style.display = 'block';
+  }
+
+  // ── Downloads ──────────────────────────────────────────
+  function dlSingle(idx) {
+    const { name, bytes } = splitResults[idx];
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    triggerDownload(url, name);
+  }
+
+  async function downloadZip() {
+    const zip = new JSZip();
+    splitResults.forEach(({ name, bytes }) => zip.file(name, bytes));
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    triggerDownload(URL.createObjectURL(blob), 'split_pdfs.zip');
+  }
+
+  function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+</script>
+</body>
+</html>

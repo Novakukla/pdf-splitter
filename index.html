@@ -4,12 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF Splitter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f3f4f6;
+      font-family: 'Ubuntu', sans-serif;
+      background: #f0ecff;
       min-height: 100vh;
       padding: 2rem 1rem;
       color: #1f2937;
@@ -32,7 +35,7 @@
       font-weight: 700;
       letter-spacing: .06em;
       text-transform: uppercase;
-      color: #9ca3af;
+      color: #a89dc8;
       margin-bottom: 1rem;
     }
 
@@ -47,12 +50,12 @@
       user-select: none;
     }
     .drop-zone:hover, .drop-zone.over {
-      border-color: #6366f1;
-      background: #eef2ff;
+      border-color: #7c6fcd;
+      background: #ede9ff;
     }
     .drop-zone .dz-icon { font-size: 2.5rem; margin-bottom: .75rem; }
     .drop-zone .dz-main { font-size: .95rem; color: #374151; }
-    .drop-zone .dz-main strong { color: #6366f1; }
+    .drop-zone .dz-main strong { color: #7c6fcd; }
     .drop-zone .dz-note  { font-size: .75rem; color: #9ca3af; margin-top: .4rem; }
     #file-input { display: none; }
 
@@ -62,8 +65,8 @@
       gap: .75rem;
       margin-top: 1rem;
       padding: .65rem 1rem;
-      background: #f5f3ff;
-      border: 1.5px solid #c4b5fd;
+      background: #f0ecff;
+      border: 1.5px solid #c4b8e8;
       border-radius: 8px;
     }
     .file-pill.visible { display: flex; }
@@ -83,8 +86,8 @@
       border-radius: 8px; background: #fff; font-size: .85rem;
       font-weight: 600; cursor: pointer; transition: all .2s; color: #374151;
     }
-    .tab:hover  { border-color: #6366f1; color: #6366f1; }
-    .tab.active { border-color: #6366f1; background: #6366f1; color: #fff; }
+    .tab:hover  { border-color: #7c6fcd; color: #7c6fcd; }
+    .tab.active { border-color: #7c6fcd; background: #7c6fcd; color: #fff; }
 
     .opt-group { display: none; margin-top: 1rem; }
     .opt-group.show { display: block; }
@@ -96,7 +99,7 @@
       font-size: .9rem; outline: none;
       transition: border-color .15s;
     }
-    .opt-group input:focus { border-color: #6366f1; }
+    .opt-group input:focus { border-color: #7c6fcd; }
     .hint { font-size: .75rem; color: #9ca3af; margin-top: .35rem; }
 
     /* ── Buttons ── */
@@ -109,14 +112,14 @@
     }
     .btn-primary {
       width: 100%; padding: .8rem;
-      background: #6366f1; color: #fff; font-size: 1rem;
+      background: #7c6fcd; color: #fff; font-size: 1rem;
     }
-    .btn-primary:hover   { background: #4f46e5; }
-    .btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .btn-primary:hover   { background: #6b5db8; }
+    .btn-primary:disabled { background: #c4b8e8; cursor: not-allowed; }
     .btn-outline {
       background: #fff; border: 1.5px solid #e5e7eb; color: #374151;
     }
-    .btn-outline:hover { border-color: #6366f1; color: #6366f1; }
+    .btn-outline:hover { border-color: #7c6fcd; color: #7c6fcd; }
     .btn-green { background: #10b981; color: #fff; }
     .btn-green:hover { background: #059669; }
 
@@ -128,7 +131,7 @@
       height: 8px; overflow: hidden;
     }
     .prog-fill {
-      background: #6366f1; height: 100%; width: 0%;
+      background: #7c6fcd; height: 100%; width: 0%;
       border-radius: 99px; transition: width .3s;
     }
 
@@ -157,14 +160,14 @@
       font-size: .75rem; color: #d1d5db;
     }
     footer a { color: #9ca3af; text-decoration: none; }
-    footer a:hover { color: #6366f1; }
+    footer a:hover { color: #7c6fcd; }
   </style>
 </head>
 <body>
 <div class="container">
 
   <header>
-    <h1>✂️ PDF Splitter</h1>
+    <h1>PDF Splitter</h1>
     <p>Split multi-contract PDFs. Everything runs in your browser — no file is ever uploaded.</p>
   </header>
 
